@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Board</title>
+<style>
+:root{--bg:#f6f7f9;--card:#ffffff;--ink:#1d2330;--ink2:#4a5263;--muted:#7a8294;--line:#e3e6ec;--accent:#2f6fdf;--good:#1f8a5b;--warn:#b7791f;--bad:#c2413b;--chip:#eef1f6;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11141a;--card:#191d25;--ink:#e6e9ef;--ink2:#b5bccb;--muted:#8a92a3;--line:#2a303b;--accent:#6c9cff;--good:#43b581;--warn:#e0a63a;--bad:#ef6b62;--chip:#232834}}
+:root[data-theme="dark"]{--bg:#11141a;--card:#191d25;--ink:#e6e9ef;--ink2:#b5bccb;--muted:#8a92a3;--line:#2a303b;--accent:#6c9cff;--good:#43b581;--warn:#e0a63a;--bad:#ef6b62;--chip:#232834}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+header h1{font-size:18px;margin:0;font-weight:650}header .meta{color:var(--muted);font-size:13px;margin-left:auto}
+nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;border-bottom:2px solid transparent;color:var(--ink2);padding:8px 12px;font:inherit;cursor:pointer}
+nav button.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}nav .n{background:var(--accent);color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px;font-weight:650}.card h3{font-size:13px;margin:14px 0 6px;color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+.lead{font-size:16px;line-height:1.55}.muted{color:var(--muted)}.small{font-size:13px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}.stat .v{font-size:22px;font-weight:650}.stat .l{color:var(--muted);font-size:13px}
+blockquote{margin:0;padding:10px 14px;border-left:3px solid var(--accent);background:var(--chip);border-radius:6px;white-space:pre-line}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}.chip{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;background:var(--chip);color:var(--ink2);white-space:nowrap}
+.chip.good{color:var(--good)}.chip.warn{color:var(--warn)}.chip.bad{color:var(--bad)}.chip.acc{color:var(--accent)}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}.dot.on{background:var(--good)}.dot.off{background:var(--muted)}
+.mono{font-family:var(--mono);font-size:12.5px}ul{margin:6px 0;padding-left:20px}li{margin:3px 0}
+.ev{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.ev .t{color:var(--muted);font-size:13px;min-width:120px;font-variant-numeric:tabular-nums}.ev.new{background:linear-gradient(90deg,var(--chip),transparent)}
+.gate{max-width:340px;margin:18vh auto;text-align:center}.gate .ttl{font-size:20px;font-weight:650;margin-bottom:12px}
+.gate input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+.btn{margin-top:10px;padding:9px 16px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:inherit;cursor:pointer}
+.err{color:var(--bad);margin-top:8px;min-height:1.4em}.tools{display:flex;gap:8px;align-items:center}.tools select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px}
+.linkbtn{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:13px;text-decoration:underline}
+@media (max-width:640px){.wrap{padding:12px}.ev{flex-direction:column;gap:2px}.ev .t{min-width:0}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+"use strict";
+const h=(t,a,...c)=>{const e=document.createElement(t);for(const k in a||{}){const v=a[k];if(v==null||v===false)continue;if(k==="text")e.textContent=v;else if(k==="cls")e.className=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v);}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:String(x));return e;};
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+const app=document.getElementById("app");
+let pass=null,data=null,stamp="",tab=store.get("tt")||"status",kindFilter="all";
+async function openBox(buf,p){
+  const u=new Uint8Array(buf),salt=u.slice(0,16),iv=u.slice(16,28),ct=u.slice(28);
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveKey"]);
+  const key=await crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:200000,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+  const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},key,ct);
+  const st=new Blob([pt]).stream().pipeThrough(new DecompressionStream("gzip"));
+  return JSON.parse(await new Response(st).text());
+}
+const home=(()=>{const m=location.host.match(/^([^.]+)\.github\.io$/),p=location.pathname.split("/").filter(Boolean)[0];return m&&p?m[1]+"/"+p:"";})();
+let lastEtag="",lastRef="",loadedRef="";
+async function latest(){
+  if(!home)return"";
+  try{const headers={Accept:"application/vnd.github.sha"};if(lastEtag)headers["If-None-Match"]=lastEtag;
+    const r=await fetch(`https://api.github.com/repos/${home}/commits/data`,{headers,cache:"no-store"});
+    if(r.status===304&&lastRef)return lastRef;if(r.ok){lastEtag=r.headers.get("ETag")||"";lastRef=(await r.text()).trim();return lastRef;}}catch(e){}
+  return"data";
+}
+const fetchBin=async(n,ref)=>{const url=ref?`https://raw.githubusercontent.com/${home}/${ref}/${n}`:n+"?t="+Date.now();const r=await fetch(url,{cache:"no-store"});if(!r.ok)throw new Error("fetch "+r.status);return r.arrayBuffer();};
+function gate(msg){
+  app.textContent="";
+  const inp=h("input",{type:"password",placeholder:"Key",autocomplete:"off","aria-label":"Key"});const err=h("div",{cls:"err",text:msg||""});
+  const go=async()=>{const v=inp.value.trim();if(!v)return;err.textContent="";await unlock(v,true).catch(()=>{err.textContent="That key does not open it.";});};
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter")go();});
+  app.append(h("div",{cls:"gate"},h("div",{cls:"ttl",text:"Board"}),inp,h("button",{cls:"btn",text:"Open",onclick:go}),err));inp.focus();
+}
+async function unlock(p,remember){const ref=await latest();const buf=await fetchBin("d.bin",ref);const d=await openBox(buf,p);pass=p;data=d;loadedRef=ref;stamp=new Uint8Array(buf).slice(0,28).join();if(remember)store.set("tk",p);render();}
+async function refresh(){if(!pass)return;try{const ref=await latest();if(ref&&ref!=="data"&&ref===loadedRef)return;const buf=await fetchBin("d.bin",ref),st=new Uint8Array(buf).slice(0,28).join();loadedRef=ref;if(st!==stamp){data=await openBox(buf,pass);stamp=st;const y=scrollY;render();scrollTo(0,y);}}catch(e){}}
+const seen=()=>+store.get("te")||0;const newCount=()=>(data.events||[]).filter(e=>e.id>seen()).length;
+const chip=(t,c)=>h("span",{cls:"chip "+(c||""),text:t});
+const yes=(b,t1,t0)=>chip(b?(t1||"yes"):(t0||"no"),b?"good":"bad");
+function table(head,rows,numCols){numCols=numCols||[];return h("div",{cls:"scroll"},h("table",{},h("thead",{},h("tr",{},head.map((x,i)=>h("th",{cls:numCols.includes(i)?"num":null,text:x})))),h("tbody",{},rows.map(r=>h("tr",{},r.map((x,i)=>h("td",{cls:numCols.includes(i)?"num":null},x)))))));}
+function vStatus(){
+  const w=data.watcher||{},s=(data.seasons||{}).rows||[];
+  const live=(w.signals||[]).filter(x=>x.live).length;
+  const out=[h("div",{cls:"card"},h("h2",{text:"Where things stand"}),h("div",{cls:"lead",text:data.now||""}))];
+  out.push(h("div",{cls:"grid"},
+    h("div",{cls:"stat"},h("div",{cls:"v",text:live?`${live} live`:"Not live"}),h("div",{cls:"l",text:"New track signals"})),
+    ...s.map(c=>h("div",{cls:"stat"},h("div",{cls:"v",text:c.hours_left!=null?`${c.hours_left} h`:c.status}),h("div",{cls:"l",text:`${c.label||c.track} closes ${c.closes}`}))),
+    h("div",{cls:"stat"},h("div",{cls:"v"},h("span",{cls:"dot "+(w.alive?"on":"off")}),w.alive?"Running":"Stopped"),h("div",{cls:"l",text:`Watcher, last check ${w.checked||"?"}`}))));
+  const a=data.announcement||{};
+  out.push(h("div",{cls:"card"},h("h2",{text:"Announcement"}),h("div",{cls:"muted small",text:a.date||""}),h("blockquote",{text:a.text||""}),h("p",{text:a.reading||""})));
+  out.push(h("div",{cls:"card"},h("h2",{text:"Launch signals"}),h("div",{cls:"muted small",text:"Checked every 10 minutes; any change also goes to Telegram."}),
+    table(["Signal","Now","State","Goes live when"],(w.signals||[]).map(x=>[x.name,h("span",{cls:"mono",text:String(x.value)}),x.live?chip("live","good"):chip("waiting"),x.goes_live]))));
+  return out;
+}
+function vRules(){
+  const p=data.profile||{},L=p.limits||{},S=p.success||{},ph=p.physics||{},pos=L.position_m||{};
+  const rows=[["Profile",`${p.id} ${p.version}`],["Robot",p.robot],["Templates",(p.templates||[]).join(", ")],["Objects",(p.assets||[]).map(a=>`${a.title} (${a.mass_kg} kg)`).join(", ")+`, up to ${L.max_objects}`],
+    ["Positions",`x ${pos.x}, y ${pos.y}, z ${pos.z} m`],["Spacing",`${L.minimum_center_separation_m} m between cubes and between goals`],["Instances",`${L.min_instances} to ${L.max_instances}`],
+    ["Step limit",`${L.max_control_steps_per_trial} steps of ${ph.control_period_s} s`],["Physics",`MuJoCo ${ph.mujoco_version}`],
+    ["Success",`whole cube inside a ${S.xy_radius_m} m zone, z within ${S.z_tolerance_m} m, fingers at least ${S.finger_open_min_m} m open, still (${S.max_linear_speed_m_s} m/s, ${S.max_angular_speed_rad_s} rad/s) for ${S.hold_control_steps} steps`],
+    ["Profile digest",h("span",{cls:"mono",text:(p.execution_profile||{}).digest||""})]];
+  return [h("div",{cls:"card"},h("h2",{text:"Task profile"}),h("div",{cls:"muted small",text:p.description||""}),table(["",""],rows)),
+    h("div",{cls:"card"},h("h2",{text:"Submitting"}),table(["Item","What the code says"],data.submission||[])),
+    h("div",{cls:"card"},h("h2",{text:"Not public yet"}),table(["Unknown","Detail"],data.unknowns||[])),
+    h("div",{cls:"card"},h("h2",{text:"Contradictions"}),h("ul",{},(data.contradictions||[]).map(x=>h("li",{text:x}))))];
+}
+const NEED={naive:["any controller","warn"],ordered:["needs ordering","acc"],full:["needs a buffer","good"],none:["no controller","bad"]};
+function vKit(){
+  const B=(data.kit||{}).batches||[];if(!B.length)return[h("div",{cls:"card",text:"No batches yet."})];
+  const out=[h("div",{cls:"grid"},B.map(b=>h("div",{cls:"stat"},h("div",{cls:"v",text:`${b.solved} / ${b.n}`}),h("div",{cls:"l",text:`${b.name}: solved in the stand-in, ${b.valid} fully valid, ${b.built}`}))))];
+  out.push(h("div",{cls:"card"},h("h2",{text:"By kind"}),h("div",{cls:"muted small",text:"Stand-in references prove a plan in our approximate scene; real references need the owners' runtime."}),
+    table(["Batch","Kind","Tasks","Contract ok","Reference ok","Solved","Avg steps","Robust 3–6 mm","Controller needed"],
+      B.flatMap(b=>b.kinds.map(k=>[b.name,k.kind,k.n,k.contract,k.reference,k.solved,k.steps,k.robust,h("span",{},Object.entries(k.needs).map(([n,c])=>chip(`${(NEED[n]||[n])[0]} ${c}`,(NEED[n]||[])[1])))])),[2,3,4,5,6,7])));
+  const kinds=["all",...new Set(B.flatMap(b=>b.tasks.map(t=>t.kind)))];
+  const sel=h("select",{"aria-label":"Kind",onchange:e=>{kindFilter=e.target.value;render();}},kinds.map(k=>{const o=h("option",{value:k,text:k});if(k===kindFilter)o.selected=true;return o;}));
+  const rows=B.flatMap(b=>b.tasks.filter(t=>kindFilter==="all"||t.kind===kindFilter).map(t=>[b.name,t.name,yes(t.contract,"ok","fails"),yes(t.reference,"ok","fails"),yes(t.solved),t.steps,Object.entries(t.robust).map(([k,v])=>`${k} ${Math.round(v*100)}%`).join(", ")||"–",t.needs?chip((NEED[t.needs]||[t.needs])[0],(NEED[t.needs]||[])[1]):"–",h("span",{cls:"mono",text:(t.issues||[]).join(", ")})]));
+  out.push(h("div",{cls:"card"},h("div",{cls:"tools"},h("h2",{text:"Tasks",style:"margin:0"}),sel),table(["Batch","Task","Contract","Reference","Solved","Steps","Robust","Controller needed","Issues"],rows,[5])));
+  return out;
+}
+function vUpstream(){const U=data.upstream||{};return[h("div",{cls:"muted small",text:`Fetched ${U.fetched||"?"}`}),...(U.repos||[]).map(r=>h("div",{cls:"card"},h("h2",{text:r.name}),table(["When","Commit","Message"],r.commits.map(c=>[c.date,h("span",{cls:"mono",text:c.sha}),c.msg]))))];}
+const PS={done:"good",waiting:"warn",next:"acc",option:""};
+function vPlan(){return[h("div",{cls:"card"},h("h2",{text:"Plan"}),table(["State","Step","Detail"],(data.plan||[]).map(p=>[chip(p[0],PS[p[0]]),p[1],p[2]]))),h("div",{cls:"card"},h("h2",{text:"Findings"}),table(["Finding","Detail"],data.findings||[]))];}
+function vEvents(){const s=seen();const E=(data.events||[]).slice().reverse();const v=[h("div",{cls:"card"},E.map(e=>h("div",{cls:"ev"+(e.id>s?" new":"")},h("div",{cls:"t",text:e.t}),h("div",{text:e.text}))))];store.set("te",String(Math.max(0,...(data.events||[]).map(e=>e.id))));return v;}
+const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
+function render(){
+  app.textContent="";if(!TABS.find(t=>t[0]===tab))tab="status";
+  const n=newCount();document.title=n?`(${n}) Board`:"Board";
+  app.append(h("header",{},h("h1",{text:"Board"}),h("div",{cls:"meta"},`Updated ${data.built||"?"}`," · ",h("button",{cls:"linkbtn",text:"Lock",onclick:()=>{store.del("tk");pass=null;data=null;gate();}}))));
+  app.append(h("nav",{},TABS.map(([id,label])=>h("button",{cls:id===tab?"on":null,onclick:()=>{tab=id;store.set("tt",id);render();scrollTo(0,0);}},label,id==="events"&&n&&tab!=="events"?h("span",{cls:"n",text:n}):null))));
+  for(const x of TABS.find(t=>t[0]===tab)[2]())app.append(x);
+}
+(async()=>{const q=new URLSearchParams(location.search);if(q.get("tab"))tab=q.get("tab");if(q.get("theme"))document.documentElement.setAttribute("data-theme",q.get("theme"));const m=location.hash.match(/k=([^&]+)/);const k=m?decodeURIComponent(m[1]):store.get("tk");if(m)history.replaceState(null,"",location.pathname);
+  if(k){try{await unlock(k,!!m);}catch(e){gate();}}else gate();setInterval(refresh,70000);})();
+</script>
+</body>
+</html>

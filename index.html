@@ -134,6 +134,14 @@ function vProofs(){
     r.tasks.map(t=>[t.task,`${t.solved??"–"} / ${t.instances??"–"}`,t.deterministic??"–",t.hold??"–",t.steps??"–",yes(t.replay,"pass","fail"),t.fmt==null?"–":yes(t.fmt,"ok","fails"),t.release||"–",t.mb||"–"]),[0,2,3,4,8])));
   return out;
 }
+function vBackups(){
+  const B=data.backups||{rows:[]};if(!B.rows.length)return[h("div",{cls:"card",text:"No backups recorded."})];
+  const out=[h("div",{cls:"card"},h("h2",{text:"On Hugging Face"}),h("div",{cls:"muted small",text:"Every copy is private (entry packages stay private until the opening) and was verified after upload: archives by size and SHA-256, entry packages by downloading them back and comparing the package digest, models file by file. Secrets, environments and the board's keys are never uploaded."})),
+    h("div",{cls:"grid"},[h("div",{cls:"stat"},h("div",{cls:"v",text:`${B.ok} / ${B.n}`}),h("div",{cls:"l",text:"copies verified"}))])];
+  for(const g of [...new Set(B.rows.map(r=>r.group))]){const rows=B.rows.filter(r=>r.group===g);
+    out.push(h("div",{cls:"card"},h("h2",{text:g}),table(["What","Account / repo","MB","Files","Verified","When (ET)"],rows.map(r=>[r.what,r.where,r.mb??"–",r.files??"–",yes(r.ok,"yes","NO"),r.at||"–"]),[2,3])));}
+  return out;
+}
 function inline(s,q){const out=[];const re=/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;let i=0,m;
   const txt=t=>{if(!q)return[t];const r=[],lo=t.toLowerCase();let j=0,k;while(q&&(k=lo.indexOf(q,j))>=0){if(k>j)r.push(t.slice(j,k));r.push(h("mark",{text:t.slice(k,k+q.length)}));j=k+q.length;}if(j<t.length)r.push(t.slice(j));return r;};
   while((m=re.exec(s))){if(m.index>i)out.push(...txt(s.slice(i,m.index)));const t=m[0];
@@ -210,7 +218,7 @@ function vUpstream(){const U=data.upstream||{};return[h("div",{cls:"muted small"
 const PS={done:"good",waiting:"warn",next:"acc",option:""};
 function vPlan(){return[h("div",{cls:"card"},h("h2",{text:"Plan"}),table(["State","Step","Detail"],(data.plan||[]).map(p=>[chip(p[0],PS[p[0]]),p[1],p[2]]))),h("div",{cls:"card"},h("h2",{text:"Findings"}),table(["Finding","Detail"],data.findings||[]))];}
 function vEvents(){const s=seen();const E=(data.events||[]).slice().reverse();const v=[h("div",{cls:"card"},E.map(e=>h("div",{cls:"ev"+(e.id>s?" new":"")},h("div",{cls:"t",text:e.t}),h("div",{text:e.text}))))];store.set("te",String(Math.max(0,...(data.events||[]).map(e=>e.id))));return v;}
-const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["proofs","Proofs",vProofs],["experience","Experience",vExperience],["ideas","Ideas",vIdeas],["verified","Verified",vVerified],["failed","Failed",vFailed],["diagnosis","Diagnosis",vDiagnosis],["lessons","Lessons",vLessons],["docs","Docs",vDocs],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
+const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["proofs","Proofs",vProofs],["backups","Backups",vBackups],["experience","Experience",vExperience],["ideas","Ideas",vIdeas],["verified","Verified",vVerified],["failed","Failed",vFailed],["diagnosis","Diagnosis",vDiagnosis],["lessons","Lessons",vLessons],["docs","Docs",vDocs],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
 function render(){
   app.textContent="";if(!TABS.find(t=>t[0]===tab))tab="status";
   const n=newCount();document.title=n?`(${n}) Board`:"Board";

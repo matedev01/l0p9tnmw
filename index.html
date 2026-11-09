@@ -34,6 +34,17 @@ th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;le
 .btn{margin-top:10px;padding:9px 16px;border:0;border-radius:8px;background:var(--accent);color:#fff;font:inherit;cursor:pointer}
 .err{color:var(--bad);margin-top:8px;min-height:1.4em}.tools{display:flex;gap:8px;align-items:center}.tools select{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px}
 .linkbtn{background:none;border:0;color:var(--muted);cursor:pointer;font:inherit;font-size:13px;text-decoration:underline}
+.search{flex:1;min-width:0;max-width:360px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit}
+.kmeta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:-4px 0 8px}.fld{margin:8px 0 0}.fld .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em}.fld .x{white-space:pre-line}
+.card.flag{border-color:var(--warn);border-left-width:4px}.card.kc h2{margin-bottom:8px}
+.docs{display:grid;grid-template-columns:270px minmax(0,1fr);gap:12px;align-items:start}.doclist{margin-top:8px;max-height:78vh;overflow:auto}
+.dg{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em;margin:12px 0 4px}
+.docbtn{display:block;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:6px 8px;color:var(--ink2);font:inherit;font-size:14px;cursor:pointer}.docbtn:hover{background:var(--chip)}.docbtn.on{background:var(--chip);color:var(--ink);font-weight:600}
+.docview{min-width:0;overflow-wrap:anywhere}.docview h2.dt{font-size:18px}.docview h2.mdh,.docview h3,.docview h4,.docview h5{text-transform:none;letter-spacing:0;color:var(--ink);margin:18px 0 6px;font-weight:650}
+.docview h2.mdh{font-size:17px}.docview h3{font-size:15.5px}.docview h4{font-size:14.5px}.docview h5{font-size:14px}
+.docview pre{background:var(--chip);padding:10px;border-radius:6px;overflow-x:auto;font-size:12.5px}.docview code{font-family:var(--mono);font-size:12.5px;background:var(--chip);padding:0 3px;border-radius:3px}.docview pre code{background:none;padding:0}
+.docview hr{border:0;border-top:1px solid var(--line);margin:14px 0}.docview a{color:var(--accent)}mark{background:var(--warn);color:var(--bg);border-radius:2px;padding:0 1px}
+@media (max-width:760px){.docs{grid-template-columns:1fr}.doclist{max-height:none}}
 @media (max-width:640px){.wrap{padding:12px}.ev{flex-direction:column;gap:2px}.ev .t{min-width:0}}
 </style>
 </head>
@@ -44,7 +55,7 @@ th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;le
 const h=(t,a,...c)=>{const e=document.createElement(t);for(const k in a||{}){const v=a[k];if(v==null||v===false)continue;if(k==="text")e.textContent=v;else if(k==="cls")e.className=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else e.setAttribute(k,v);}for(const x of c.flat())if(x!=null&&x!==false)e.append(x.nodeType?x:String(x));return e;};
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
 const app=document.getElementById("app");
-let pass=null,data=null,stamp="",tab=store.get("tt")||"status",kindFilter="all";
+let pass=null,data=null,stamp="",tab=store.get("tt")||"status",kindFilter="all",docs=null,docsHash="",docSel=store.get("td")||"",docQ="";const KQ={};
 async function openBox(buf,p){
   const u=new Uint8Array(buf),salt=u.slice(0,16),iv=u.slice(16,28),ct=u.slice(28);
   const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveKey"]);
@@ -71,7 +82,7 @@ function gate(msg){
   app.append(h("div",{cls:"gate"},h("div",{cls:"ttl",text:"Board"}),inp,h("button",{cls:"btn",text:"Open",onclick:go}),err));inp.focus();
 }
 async function unlock(p,remember){const ref=await latest();const buf=await fetchBin("d.bin",ref);const d=await openBox(buf,p);pass=p;data=d;loadedRef=ref;stamp=new Uint8Array(buf).slice(0,28).join();if(remember)store.set("tk",p);render();}
-async function refresh(){if(!pass)return;try{const ref=await latest();if(ref&&ref!=="data"&&ref===loadedRef)return;const buf=await fetchBin("d.bin",ref),st=new Uint8Array(buf).slice(0,28).join();loadedRef=ref;if(st!==stamp){data=await openBox(buf,pass);stamp=st;const y=scrollY;render();scrollTo(0,y);}}catch(e){}}
+async function refresh(){if(!pass)return;try{const ref=await latest();if(ref&&ref!=="data"&&ref===loadedRef)return;const buf=await fetchBin("d.bin",ref),st=new Uint8Array(buf).slice(0,28).join();loadedRef=ref;if(st!==stamp){const old=data.docs_hash;data=await openBox(buf,pass);stamp=st;if(tab==="docs"&&old===data.docs_hash)return;const y=scrollY;render();scrollTo(0,y);}}catch(e){}}
 const seen=()=>+store.get("te")||0;const newCount=()=>(data.events||[]).filter(e=>e.id>seen()).length;
 const chip=(t,c)=>h("span",{cls:"chip "+(c||""),text:t});
 const yes=(b,t1,t0)=>chip(b?(t1||"yes"):(t0||"no"),b?"good":"bad");
@@ -79,7 +90,7 @@ function table(head,rows,numCols){numCols=numCols||[];return h("div",{cls:"scrol
 function vStatus(){
   const w=data.watcher||{},s=(data.seasons||{}).rows||[];
   const live=(w.signals||[]).filter(x=>x.live).length;
-  const out=[h("div",{cls:"card"},h("h2",{text:"Where things stand"}),h("div",{cls:"lead",text:data.now||""}))];
+  const out=[flags(),h("div",{cls:"card"},h("h2",{text:"Where things stand"}),h("div",{cls:"lead",text:data.now||""}))].filter(Boolean);
   out.push(h("div",{cls:"grid"},
     h("div",{cls:"stat"},h("div",{cls:"v",text:live?`${live} live`:"Not live"}),h("div",{cls:"l",text:"New track signals"})),
     ...s.map(c=>h("div",{cls:"stat"},h("div",{cls:"v",text:c.hours_left!=null?`${c.hours_left} h`:c.status}),h("div",{cls:"l",text:`${c.label||c.track} closes ${c.closes}`}))),
@@ -123,11 +134,83 @@ function vProofs(){
     r.tasks.map(t=>[t.task,`${t.solved??"–"} / ${t.instances??"–"}`,t.deterministic??"–",t.hold??"–",t.steps??"–",yes(t.replay,"pass","fail"),t.fmt==null?"–":yes(t.fmt,"ok","fails"),t.release||"–",t.mb||"–"]),[0,2,3,4,8])));
   return out;
 }
+function inline(s,q){const out=[];const re=/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\))/g;let i=0,m;
+  const txt=t=>{if(!q)return[t];const r=[],lo=t.toLowerCase();let j=0,k;while(q&&(k=lo.indexOf(q,j))>=0){if(k>j)r.push(t.slice(j,k));r.push(h("mark",{text:t.slice(k,k+q.length)}));j=k+q.length;}if(j<t.length)r.push(t.slice(j));return r;};
+  while((m=re.exec(s))){if(m.index>i)out.push(...txt(s.slice(i,m.index)));const t=m[0];
+    if(t.startsWith("**"))out.push(h("strong",{},txt(t.slice(2,-2))));else if(t.startsWith("`"))out.push(h("code",{},txt(t.slice(1,-1))));
+    else{const mm=t.match(/\[([^\]]+)\]\(([^)\s]+)\)/);out.push(/^https:\/\//.test(mm[2])?h("a",{href:mm[2],target:"_blank",rel:"noopener noreferrer",text:mm[1]}):h("span",{},txt(mm[1])));}
+    i=m.index+t.length;}
+  if(i<s.length)out.push(...txt(s.slice(i)));return out;}
+const LI=/^\s*([-*]|\d+\.)\s+/;
+function md(text,q){const L=String(text||"").replace(/\r/g,"").split("\n"),out=[];let i=0;const il=s=>inline(s,q);
+  while(i<L.length){const l=L[i];
+    if(/^\s*```/.test(l)){const b=[];i++;while(i<L.length&&!/^\s*```/.test(L[i]))b.push(L[i++]);i++;out.push(h("pre",{},h("code",{text:b.join("\n")})));continue;}
+    const hm=l.match(/^(#{1,4})\s+(.*)/);if(hm){out.push(h("h"+(hm[1].length+1),{cls:hm[1].length===1?"mdh":null},il(hm[2])));i++;continue;}
+    if(/^\s*\|/.test(l)){const rows=[];while(i<L.length&&/^\s*\|/.test(L[i]))rows.push(L[i++]);const cells=r=>r.trim().replace(/^\||\|$/g,"").split("|").map(c=>c.trim());
+      const body=rows.filter(r=>!/^\s*\|[\s:|-]+\|\s*$/.test(r)).map(cells);if(body.length)out.push(h("div",{cls:"scroll"},h("table",{},h("thead",{},h("tr",{},body[0].map(c=>h("th",{},il(c))))),h("tbody",{},body.slice(1).map(r=>h("tr",{},r.map(c=>h("td",{},il(c)))))))));continue;}
+    if(LI.test(l)){const root=h(/^\s*\d+\./.test(l)?"ol":"ul",{}),st=[{ind:l.match(/^\s*/)[0].length,el:root}];
+      while(i<L.length&&(LI.test(L[i])||(/^\s+\S/.test(L[i])))){const x=L[i],ind=x.match(/^\s*/)[0].length,mm=x.match(/^\s*([-*]|\d+\.)\s+(.*)/);
+        if(!mm){const last=st[st.length-1].el.lastChild;if(last)last.append(" ",...il(x.trim()));i++;continue;}
+        while(st.length>1&&ind<st[st.length-1].ind)st.pop();
+        if(ind>st[st.length-1].ind){const li=st[st.length-1].el.lastChild;if(li){const sub=h(/\d+\./.test(mm[1])?"ol":"ul",{});li.append(sub);st.push({ind,el:sub});}}
+        st[st.length-1].el.append(h("li",{},il(mm[2])));i++;}
+      out.push(root);continue;}
+    if(/^>/.test(l)){const b=[];while(i<L.length&&/^>/.test(L[i]))b.push(L[i++].replace(/^>\s?/,""));out.push(h("blockquote",{},il(b.join("\n"))));continue;}
+    if(/^\s*(---+|\*\*\*+)\s*$/.test(l)){out.push(h("hr"));i++;continue;}
+    if(!l.trim()){i++;continue;}
+    const b=[];while(i<L.length&&L[i].trim()&&!/^(#{1,4}\s|\s*```|\s*\||>)/.test(L[i])&&!LI.test(L[i]))b.push(L[i++]);if(!b.length)b.push(L[i++]);out.push(h("p",{},il(b.join(" "))));}
+  return out;}
+const KL={experience:["experience","acc"],idea:["idea","warn"],verified:["verified","good"],failed:["failed","bad"],diagnosis:["diagnosis","acc"],lesson:["lesson",""]};
+const VC={Right:"good",Wrong:"bad",Partly:"warn",Running:"acc",Waiting:"",Void:""};
+const fld=(k,v)=>v?h("div",{cls:"fld"},h("div",{cls:"k",text:k}),h("div",{cls:"x",text:v})):null;
+function flags(){const k=data.knowledge||{},u=k.unrecorded||[],p=k.open_preds||[];if(!u.length&&!p.length)return null;
+  return h("div",{cls:"card flag"},h("h2",{text:"Needs a write-up"}),h("ul",{},u.map(r=>h("li",{},"Result ",h("span",{cls:"mono",text:r})," has no entry yet")),p.map(x=>h("li",{text:`Prediction ${x} is still marked running, but every run it names has finished`}))));}
+function cards(kind,note){
+  const E=((data.knowledge||{}).entries||[]).filter(e=>e.kind===kind).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const items=E.map(e=>{const el=h("div",{cls:"card kc"},h("h2",{text:e.title}),h("div",{cls:"kmeta"},chip(KL[kind][0],KL[kind][1]),h("span",{cls:"muted small",text:e.date||""}),(e.tags||[]).map(t=>chip(t))),
+      fld("Evidence",e.evidence),fld(kind==="idea"?"Why it is worth testing":"Why it matters",e.why),kind==="idea"?fld("Test that settles it",e.test):null,
+      e.source?h("div",{cls:"fld"},h("div",{cls:"k",text:"Source"}),h("div",{cls:"mono",text:e.source})):null,
+      (e.runs||[]).length?h("div",{cls:"fld"},h("div",{cls:"k",text:"Results"}),h("div",{},e.runs.map(r=>chip(r,"acc")))):null,
+      (e.history||[]).length?h("div",{cls:"muted small fld",text:e.history.join("; ")}):null);
+    el.dataset.s=[e.title,e.evidence,e.why,e.test,e.source,(e.tags||[]).join(" "),(e.runs||[]).join(" ")].join(" ").toLowerCase();return el;});
+  const cnt=h("span",{cls:"muted small"}),q=h("input",{type:"search",cls:"search",placeholder:"Search","aria-label":"Search",value:KQ[kind]||""});
+  const apply=()=>{const t=(KQ[kind]||"").toLowerCase().trim();let n=0;for(const el of items){const ok=!t||el.dataset.s.includes(t);el.style.display=ok?"":"none";n+=ok;}cnt.textContent=`${n} of ${items.length}`;};
+  q.addEventListener("input",()=>{KQ[kind]=q.value;apply();});apply();
+  return[h("div",{cls:"card"},h("div",{cls:"muted small",text:note}),h("div",{cls:"tools",style:"margin-top:8px"},q,cnt)),...(items.length?items:[h("div",{cls:"card muted",text:"Nothing recorded yet."})])];}
+function openDoc(id){docSel=id;store.set("td",id);tab="docs";store.set("tt","docs");render();scrollTo(0,0);}
+function vExperience(){const N=(data.knowledge||{}).notes||[];
+  return[...cards("experience","What we did and what we saw, newest first. Results that settle a question move to Verified or Failed."),
+    N.length?h("div",{cls:"card"},h("h2",{text:"Notes kept between sessions"}),h("div",{cls:"muted small",text:"Long-lived experience notes; each opens on the Docs tab."}),
+      N.map(n=>h("button",{cls:"docbtn",onclick:()=>openDoc(n.id)},h("div",{text:n.title}),h("div",{cls:"muted small",text:[n.updated,n.about].filter(Boolean).join(" · ")})))):null].filter(Boolean);}
+function vIdeas(){return cards("idea","Proposed or researched, not settled. Each names the test that would settle it; write the prediction before running it.");}
+function vVerified(){return cards("verified","Held up under a test. Each says what it was measured on.");}
+function vFailed(){return cards("failed","Tried and did not work. Do not repeat without new evidence.");}
+function vLessons(){return cards("lesson","Working rules learned the hard way.");}
+function vDiagnosis(){const P=(data.knowledge||{}).predictions||[];const sc=P.filter(p=>["Right","Wrong","Partly"].includes(p.verdict));
+  return[flags(),h("div",{cls:"card"},h("h2",{text:"Predictions against results"}),h("div",{cls:"muted small",text:`Written before each run and never edited afterwards.${sc.length?` Scored so far: ${sc.filter(p=>p.verdict==="Right").length} of ${sc.length} right.`:""}`}),
+    table(["Test","Made","What","Prediction","Decision rule","Result","Verdict"],P.map(p=>[h("b",{text:p.id}),h("span",{cls:"small",style:"white-space:nowrap",text:p.made}),p.what,p.prediction,h("span",{cls:"small",text:p.rule||""}),p.result||"–",chip(p.verdict||"Waiting",VC[p.verdict])]))),
+    ...cards("diagnosis","Why things happened, each with its evidence.")].filter(Boolean);}
+async function loadDocs(){if(docs&&docsHash===data.docs_hash)return;const d=await openBox(await fetchBin("e.bin",loadedRef),pass);docs=d.docs||[];docsHash=data.docs_hash;}
+function docsView(){
+  const list=h("div",{cls:"doclist"}),view=h("div",{cls:"docview card"}),groups=[...new Set(docs.map(d=>d.group))];
+  const q=h("input",{type:"search",cls:"search",placeholder:"Search documents","aria-label":"Search documents",value:docQ,style:"max-width:none;width:100%"});
+  const hits=(t,s)=>{let n=0,j=0;while((j=t.indexOf(s,j))>=0){n++;j+=s.length;}return n;};
+  const show=id=>{const d=docs.find(x=>x.id===id)||docs[0];if(!d)return;docSel=d.id;store.set("td",d.id);const t=docQ.toLowerCase().trim();view.textContent="";
+    view.append(h("h2",{cls:"dt",text:d.title}),h("div",{cls:"muted small",text:[d.group,d.updated?"updated "+d.updated:"",d.about].filter(Boolean).join(" · ")}),...md(d.text,t.length>1?t:""));
+    for(const b of list.querySelectorAll("button"))b.classList.toggle("on",b.dataset.id===d.id);const f=view.querySelector("mark");if(f&&t)f.scrollIntoView({block:"center"});};
+  const fill=()=>{const t=docQ.toLowerCase().trim();list.textContent="";let any=0;
+    for(const g of groups){const ds=docs.filter(d=>d.group===g&&(!t||d.title.toLowerCase().includes(t)||d.text.toLowerCase().includes(t)));if(!ds.length)continue;any++;
+      list.append(h("div",{cls:"dg",text:g}),...ds.map(d=>{const n=t?hits(d.text.toLowerCase(),t):0;return h("button",{cls:"docbtn"+(d.id===docSel?" on":""),"data-id":d.id,onclick:()=>{show(d.id);if(innerWidth<760)view.scrollIntoView();}},d.title,n?h("span",{cls:"muted small",text:` · ${n}`}):null);}));}
+    if(!any)list.append(h("div",{cls:"muted small",text:"No document matches."}));};
+  let tm=0;q.addEventListener("input",()=>{docQ=q.value;clearTimeout(tm);tm=setTimeout(()=>{fill();const vis=[...list.querySelectorAll("button")].map(b=>b.dataset.id);show(vis.length&&!vis.includes(docSel)?vis[0]:docSel);},200);});
+  fill();show(docSel);return[h("div",{cls:"docs"},h("div",{},q,list),view)];}
+function vDocs(){const box=h("div",{},h("div",{cls:"card muted",text:"Opening documents…"}));
+  loadDocs().then(()=>{box.textContent="";box.append(...docsView());}).catch(e=>{box.textContent="";box.append(h("div",{cls:"card",text:"Documents could not be opened ("+e.message+")."}));});return[box];}
 function vUpstream(){const U=data.upstream||{};return[h("div",{cls:"muted small",text:`Fetched ${U.fetched||"?"}`}),...(U.repos||[]).map(r=>h("div",{cls:"card"},h("h2",{text:r.name}),table(["When","Commit","Message"],r.commits.map(c=>[c.date,h("span",{cls:"mono",text:c.sha}),c.msg]))))];}
 const PS={done:"good",waiting:"warn",next:"acc",option:""};
 function vPlan(){return[h("div",{cls:"card"},h("h2",{text:"Plan"}),table(["State","Step","Detail"],(data.plan||[]).map(p=>[chip(p[0],PS[p[0]]),p[1],p[2]]))),h("div",{cls:"card"},h("h2",{text:"Findings"}),table(["Finding","Detail"],data.findings||[]))];}
 function vEvents(){const s=seen();const E=(data.events||[]).slice().reverse();const v=[h("div",{cls:"card"},E.map(e=>h("div",{cls:"ev"+(e.id>s?" new":"")},h("div",{cls:"t",text:e.t}),h("div",{text:e.text}))))];store.set("te",String(Math.max(0,...(data.events||[]).map(e=>e.id))));return v;}
-const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["proofs","Proofs",vProofs],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
+const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["proofs","Proofs",vProofs],["experience","Experience",vExperience],["ideas","Ideas",vIdeas],["verified","Verified",vVerified],["failed","Failed",vFailed],["diagnosis","Diagnosis",vDiagnosis],["lessons","Lessons",vLessons],["docs","Docs",vDocs],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
 function render(){
   app.textContent="";if(!TABS.find(t=>t[0]===tab))tab="status";
   const n=newCount();document.title=n?`(${n}) Board`:"Board";

@@ -115,11 +115,19 @@ function vKit(){
   out.push(h("div",{cls:"card"},h("div",{cls:"tools"},h("h2",{text:"Tasks",style:"margin:0"}),sel),table(["Batch","Task","Contract","Reference","Solved","Steps","Robust","Controller needed","Issues"],rows,[5])));
   return out;
 }
+function vProofs(){
+  const R=data.lanea||[];if(!R.length)return[h("div",{cls:"card",text:"No proof runs yet."})];
+  const out=[h("div",{cls:"card"},h("h2",{text:"Official tasks with our reference"}),h("div",{cls:"muted small",text:"Each task: our reference replayed in the official runtime on all 20 instances (twice, bit for bit), a do-nothing probe that must fail, then the owners' builder and format check."})),
+    h("div",{cls:"grid"},R.map(r=>h("div",{cls:"stat"},h("div",{cls:"v",text:`${r.fmt} / ${r.n}`}),h("div",{cls:"l",text:`${r.name}: fully proved (replay ${r.replay}), ${r.built}`}))))];
+  for(const r of R)out.push(h("div",{cls:"card"},h("h2",{text:r.name}),table(["Task","Solved","Identical twice","Do-nothing solves","Longest","Replay","Format check","Release","MB"],
+    r.tasks.map(t=>[t.task,`${t.solved??"–"} / ${t.instances??"–"}`,t.deterministic??"–",t.hold??"–",t.steps??"–",yes(t.replay,"pass","fail"),t.fmt==null?"–":yes(t.fmt,"ok","fails"),t.release||"–",t.mb||"–"]),[0,2,3,4,8])));
+  return out;
+}
 function vUpstream(){const U=data.upstream||{};return[h("div",{cls:"muted small",text:`Fetched ${U.fetched||"?"}`}),...(U.repos||[]).map(r=>h("div",{cls:"card"},h("h2",{text:r.name}),table(["When","Commit","Message"],r.commits.map(c=>[c.date,h("span",{cls:"mono",text:c.sha}),c.msg]))))];}
 const PS={done:"good",waiting:"warn",next:"acc",option:""};
 function vPlan(){return[h("div",{cls:"card"},h("h2",{text:"Plan"}),table(["State","Step","Detail"],(data.plan||[]).map(p=>[chip(p[0],PS[p[0]]),p[1],p[2]]))),h("div",{cls:"card"},h("h2",{text:"Findings"}),table(["Finding","Detail"],data.findings||[]))];}
 function vEvents(){const s=seen();const E=(data.events||[]).slice().reverse();const v=[h("div",{cls:"card"},E.map(e=>h("div",{cls:"ev"+(e.id>s?" new":"")},h("div",{cls:"t",text:e.t}),h("div",{text:e.text}))))];store.set("te",String(Math.max(0,...(data.events||[]).map(e=>e.id))));return v;}
-const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
+const TABS=[["status","Status",vStatus],["rules","Rules",vRules],["kit","Kit",vKit],["proofs","Proofs",vProofs],["upstream","Upstream",vUpstream],["plan","Plan",vPlan],["events","Events",vEvents]];
 function render(){
   app.textContent="";if(!TABS.find(t=>t[0]===tab))tab="status";
   const n=newCount();document.title=n?`(${n}) Board`:"Board";
